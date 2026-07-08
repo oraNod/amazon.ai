@@ -19,3 +19,9 @@ build_ignore:
   - changelogs/.plugin-cache.yaml
   - '*cloud-config-aws.ini'
   - '*cloud-config-aws.yml'
+  - .ansible-lint
+  - .github
+  - pyproject.toml
+  - test-requirements.txt
+  - tox.ini
+  - .yamllint
