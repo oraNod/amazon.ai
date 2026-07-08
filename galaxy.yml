@@ -10,6 +10,7 @@ license_file: LICENSE
 tags:
   - ai
   - amazon
+  - cloud
 dependencies:
   amazon.aws: '>=10.0.0'
 repository: https://github.com/ansible-collections/amazon.ai
