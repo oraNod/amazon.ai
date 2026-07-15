@@ -10,6 +10,7 @@ license_file: LICENSE
 tags:
   - ai
   - amazon
+  - cloud
 dependencies:
   amazon.aws: '>=10.0.0'
 repository: https://github.com/ansible-collections/amazon.ai
@@ -19,3 +20,9 @@ build_ignore:
   - changelogs/.plugin-cache.yaml
   - '*cloud-config-aws.ini'
   - '*cloud-config-aws.yml'
+  - .ansible-lint
+  - .github
+  - pyproject.toml
+  - test-requirements.txt
+  - tox.ini
+  - .yamllint
