@@ -109,14 +109,39 @@ except ImportError:
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Optional
 
-from ansible_collections.amazon.ai.plugins.module_utils.sagemaker import find_code_repository
+from ansible_collections.amazon.ai.plugins.module_utils.sagemaker import describe_code_repository
+from ansible_collections.amazon.ai.plugins.module_utils.sagemaker import list_code_repositories
 
 from ansible.module_utils.common.dict_transformations import camel_dict_to_snake_dict
 
 from ansible_collections.amazon.aws.plugins.module_utils.exceptions import AnsibleAWSError
 from ansible_collections.amazon.aws.plugins.module_utils.modules import AnsibleAWSModule
 from ansible_collections.amazon.aws.plugins.module_utils.retries import AWSRetry
+
+
+def find_code_repositories(client, repository_name: Optional[str] = None, **kwargs) -> List[Dict[str, Any]]:
+    if repository_name:
+        repo = describe_code_repository(client, repository_name)
+        return [repo] if repo else []
+
+    params: Dict[str, Any] = {}
+    name_contains = kwargs.get("name_contains")
+    if name_contains:
+        params["NameContains"] = name_contains
+    sort_by = kwargs.get("sort_by")
+    if sort_by:
+        params["SortBy"] = sort_by
+    sort_order = kwargs.get("sort_order")
+    if sort_order:
+        params["SortOrder"] = sort_order
+
+    summaries = list_code_repositories(client, **params)
+    if not summaries:
+        return []
+
+    return [repo for s in summaries if (repo := describe_code_repository(client, s["CodeRepositoryName"])) is not None]
 
 
 def main():
@@ -141,7 +166,13 @@ def main():
     result: List[Dict[str, Any]] = []
 
     try:
-        result = find_code_repository(client, module)
+        result = find_code_repositories(
+            client,
+            module.params.get("name"),
+            name_contains=module.params.get("name_contains"),
+            sort_by=module.params.get("sort_by"),
+            sort_order=module.params.get("sort_order"),
+        )
     except AnsibleAWSError as e:
         module.fail_json_aws_error(e)
 

@@ -152,20 +152,80 @@ except ImportError:
 
 from typing import Any
 from typing import Dict
-from typing import List
 from typing import Optional
+from typing import Tuple
 
-from ansible_collections.amazon.ai.plugins.module_utils.sagemaker import create_code_repository
-from ansible_collections.amazon.ai.plugins.module_utils.sagemaker import delete_code_repository
 from ansible_collections.amazon.ai.plugins.module_utils.sagemaker import describe_code_repository
-from ansible_collections.amazon.ai.plugins.module_utils.sagemaker import find_code_repository
-from ansible_collections.amazon.ai.plugins.module_utils.sagemaker import update_code_repository
+from ansible_collections.amazon.ai.plugins.module_utils.sagemaker import list_tags
+from ansible_collections.amazon.ai.plugins.module_utils.utils import normalize_url
 
 from ansible.module_utils.common.dict_transformations import camel_dict_to_snake_dict
 
 from ansible_collections.amazon.aws.plugins.module_utils.exceptions import AnsibleAWSError
 from ansible_collections.amazon.aws.plugins.module_utils.modules import AnsibleAWSModule
 from ansible_collections.amazon.aws.plugins.module_utils.retries import AWSRetry
+
+
+def create_code_repository(client, module: AnsibleAWSModule) -> Tuple[bool, str]:
+    repository_name = module.params["name"]
+
+    if module.check_mode:
+        return True, f"Check mode: would have created code repository {repository_name}."
+
+    git_config: Dict[str, Any] = {"RepositoryUrl": module.params["git_config"]["repository_url"]}
+    if module.params["git_config"].get("branch"):
+        git_config["Branch"] = module.params["git_config"]["branch"]
+    if module.params["git_config"].get("secret_arn"):
+        git_config["SecretArn"] = module.params["git_config"]["secret_arn"]
+
+    params: Dict[str, Any] = {
+        "CodeRepositoryName": repository_name,
+        "GitConfig": git_config,
+    }
+
+    if module.params.get("tags"):
+        params["Tags"] = [{"Key": k, "Value": v} for k, v in module.params["tags"].items()]
+
+    client.create_code_repository(**params)
+    return True, f"Code repository {repository_name} created successfully."
+
+
+def update_code_repository(client, module: AnsibleAWSModule, existing: Dict[str, Any]) -> Tuple[bool, str]:
+    repository_name = module.params["name"]
+    existing_git_config = existing["GitConfig"]
+    new_git_config = module.params["git_config"]
+
+    if module.params.get("tags") is not None:
+        existing_tags = list_tags(client, existing["CodeRepositoryArn"])
+        if module.params["tags"] != existing_tags:
+            module.warn("Tags cannot be modified after the code repository is created.")
+
+    if normalize_url(existing_git_config["RepositoryUrl"]) != normalize_url(new_git_config["repository_url"]):
+        module.warn("The repository URL cannot be updated after the code repository is created.")
+    if new_git_config.get("branch") and existing_git_config.get("Branch") != new_git_config["branch"]:
+        module.warn("The branch cannot be updated after the code repository is created.")
+
+    if not new_git_config.get("secret_arn") or existing_git_config.get("SecretArn") == new_git_config["secret_arn"]:
+        return False, "No updates needed."
+
+    if module.check_mode:
+        return True, f"Check mode: would have updated code repository {repository_name}."
+
+    client.update_code_repository(
+        CodeRepositoryName=repository_name,
+        GitConfig={"SecretArn": new_git_config["secret_arn"]},
+    )
+    return True, f"Code repository {repository_name} updated successfully."
+
+
+def delete_code_repository(client, module: AnsibleAWSModule, existing: Dict[str, Any]) -> Tuple[bool, str]:
+    repository_name = existing["CodeRepositoryName"]
+
+    if module.check_mode:
+        return True, f"Check mode: would have deleted code repository '{repository_name}'."
+
+    client.delete_code_repository(CodeRepositoryName=repository_name)
+    return True, f"Code repository {repository_name} deleted successfully."
 
 
 def main():
@@ -198,8 +258,7 @@ def main():
 
     changed: bool = False
     result: Dict[str, Any] = dict(code_repository={})
-    repos: List[Dict[str, Any]] = find_code_repository(client, module)
-    existing: Optional[Dict[str, Any]] = repos[0] if repos else None
+    existing: Optional[Dict[str, Any]] = describe_code_repository(client, module.params["name"])
 
     try:
         if state == "present":
