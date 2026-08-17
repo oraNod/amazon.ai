@@ -1,5 +1,13 @@
 ---
 profile: production
+
 exclude_paths:
+  - changelogs
+  - docs
   - tests/unit
   - tests/integration
+  - .ansible
+  - .github
+
+warn_list:
+  - no-log-password
