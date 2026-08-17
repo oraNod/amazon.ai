@@ -2,7 +2,7 @@
 #
 # Note: Integration tests are handled separately via Zuul due to their
 # complexity and duration.
-
+---
 name: ansible-test
 
 on: [workflow_call]  # allow this workflow to be called from other workflows
