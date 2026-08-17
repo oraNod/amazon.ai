@@ -140,3 +140,6 @@ dmypy.json
 
 # Integration tests
 tests/integration/inventory
+
+# Ansible 
+.ansible/
