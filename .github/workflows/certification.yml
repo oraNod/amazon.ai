@@ -39,6 +39,7 @@ jobs:
   call:
     uses: ansible-collections/partner-certification-checker/.github/workflows/certification-reusable.yml@v4.1.0 # zizmor: ignore[unpinned-uses]
     with:
+      ansible-core-version: '2.18.0'
       collection-deps: "amazon.aws"
     # Uncomment the lines below if you have 'automation-hub: true' and need to install collections from Red Hat Ansible Automation Hub.
     # This requires setting a repository secret called 'AH_TOKEN' which value contains a Red Hat Ansible Automation Hub token.
