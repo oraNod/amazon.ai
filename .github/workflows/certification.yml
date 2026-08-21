@@ -37,7 +37,7 @@ concurrency:
 # for each affected version of ansible-core (for example, `tests/sanity/ignore-2.18.txt`) and add corresponding entries.
 jobs:
   call:
-    uses: ansible-collections/partner-certification-checker/.github/workflows/certification-reusable.yml@v4.1.0 # zizmor: ignore[unpinned-uses]
+    uses: oraNod/partner-certification-checker/.github/workflows/certification-reusable.yml@main
     with:
       ansible-core-version: '2.18.0'
       collection-deps: "amazon.aws"
